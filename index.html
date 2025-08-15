@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> 
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SARIM — Friends, DM, Badges, Frames</title>
+<style>
+  /* ========= BASE THEME (unchanged look) ========= */
+  body{background:#181a20;color:#fff;font-family:'Segoe UI',Arial,sans-serif;margin:0;min-height:100vh;}
+  .centered{max-width:340px;margin:48px auto;background:#24262e;border-radius:12px;box-shadow:0 2px 16px #0008;padding:32px;text-align:center;}
+  form input,form button{display:block;width:90%;margin:12px auto;padding:12px;font-size:1em;border-radius:7px;border:none;outline:none;}
+  form input[type="file"]{padding:0;margin-top:10px;color:#fff;background:none;}
+  form button,#logout-btn,.menu-btn{background:linear-gradient(90deg,#1fa2ff,#12d8fa,#a6ffcb);color:#181a20;font-weight:bold;box-shadow:0 4px 24px #1fa2ff66;cursor:pointer;border:none;transition:.2s;}
+  form button:hover,#logout-btn:hover,.menu-btn:hover{background:linear-gradient(90deg,#a6ffcb,#12d8fa,#1fa2ff);color:#000;}
+  .error-msg{color:#ff5d5d;font-size:.95em;min-height:22px;}
+  header{display:flex;justify-content:space-between;align-items:center;background:#22242b;padding:12px 20px;border-bottom:2px solid #1fa2ff50;position:relative;}
+  #profile-bar{display:flex;align-items:center;background:#24262e;padding:16px 16px 8px 16px;border-bottom:2px solid #1fa2ff25;gap:12px;flex-wrap:wrap;}
+  #profile-username{font-size:1.2em;font-weight:bold;margin-right:10px;}
+  #badge-container .badge{margin-left:5px;font-weight:bold;padding:2px 9px;border-radius:8px;box-shadow:0 0 8px #fff7,0 0 16px #1fa2ff77;font-size:.95em;animation:badgeglow 1s alternate infinite;vertical-align:middle;}
+  .badge.admin{background:linear-gradient(90deg,#fff 40%,#0ff 100%);color:#080849;border:1.5px solid #1fa2ff;text-shadow:0 0 8px #fff,0 0 16px #0ff;}
+  .badge.mvp{background:linear-gradient(90deg,#ffd700 40%,#f0c000 100%);color:#fff;border:1.5px solid #ffd700;text-shadow:0 0 8px #fff,0 0 16px #ffd700;animation:goldglow 1.5s alternate infinite;}
+  .badge.shadow{background:linear-gradient(90deg,#444 40%,#1fa2ff 100%);color:#fff;border:1.5px solid #111;text-shadow:0 0 8px #1fa2ff,0 0 16px #1fa2ff;}
+  @keyframes goldglow{0%{box-shadow:0 0 12px #ffd700,0 0 30px #fff0;}100%{box-shadow:0 0 22px #ffd700,0 0 40px #fff9;}}
+  @keyframes badgeglow{0%{box-shadow:0 0 10px #0ff,0 0 20px #fff;}100%{box-shadow:0 0 18px #1fa2ff,0 0 36px #fff;}}
+  #upload-section,#links-list-section,#admin-panel,#account-section,#genurl-section,#users-section,#chat-section{background:#24262e;margin:16px auto;max-width:600px;border-radius:9px;box-shadow:0 2px 16px #0005;padding:20px 30px;display:none;}
+  #links-list,#admin-links-list,#users-list{list-style:none;padding:0;}
+  #links-list li,#admin-links-list li{background:#1b1d23;margin:8px 0;padding:12px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+  .link-info{flex:1;overflow:hidden;}
+  .link-user{font-size:.95em;margin-left:12px;color:#1fa2ff;}
+  .link-actions button{margin-left:8px;background:#ff5d5d;color:#fff;font-weight:bold;border:none;border-radius:7px;padding:5px 11px;cursor:pointer;box-shadow:0 0 8px #ff5d5d88;transition:background .2s;}
+  .link-actions button:hover{background:#c40000;}
+  .menu-btn{background:none;border:none;font-size:2em;color:#1fa2ff;margin-right:16px;margin-left:-10px;cursor:pointer;position:relative;z-index:1002;padding:2px 8px;border-radius:7px;transition:background .2s;}
+  .menu-btn:active,.menu-btn.active{background:#1fa2ff33;}
+  .menu-drawer{position:fixed;top:0;left:-100%;width:220px;height:100vh;background:#20222a;box-shadow:4px 0 24px #0008;transition:left .25s cubic-bezier(.4,0,.2,1);z-index:1001;padding-top:70px;}
+  .menu-drawer.open{left:0;}
+  @media (max-width:600px){.menu-drawer{width:88vw;left:-88vw;}}
+  .menu-drawer ul li button{width:90%;margin:8px 5%;padding:13px 0;font-size:1.07em;background:#232442;color:#1fa2ff;border:none;border-radius:7px;font-weight:500;cursor:pointer;box-shadow:0 1px 6px #1fa2ff22;transition:background .18s,color .15s;text-align:left;padding-left:20px;position:relative;}
+  .menu-drawer ul li button.active,.menu-drawer ul li button:active{background:#1fa2ff;color:#222;}
+  .menu-drawer .close-btn{position:absolute;top:13px;right:18px;font-size:1.7em;color:#ff5d5d;background:none;border:none;z-index:1100;cursor:pointer;padding:2px 12px;border-radius:7px;transition:background .18s;}
+  .menu-drawer .close-btn:hover{background:#ff5d5d22;}
+  .drawer-backdrop{display:none;position:fixed;left:0;top:0;width:100vw;height:100vh;background:#0008;z-index:1000;transition:opacity .2s;opacity:0;}
+  .drawer-backdrop.open{display:block;opacity:1;}
+  section.active-section{display:block!important;animation:fadeIn .42s;}
+  @keyframes fadeIn{0%{opacity:0;transform:scale(.96);}100%{opacity:1;transform:scale(1);}}
+  #users-list li{display:flex;align-items:center;margin:8px 0;padding:9px;border-radius:6px;background:#1b1d23;gap:8px;flex-wrap:wrap;}
+  #users-list .user-name{font-weight:bold;color:#1fa2ff;margin-right:10px;display:inline-flex;align-items:center;gap:4px;}
+  #account-section input[type="text"],#account-section input[type="password"],#account-section input[type="file"]{width:80%;margin:10px auto;padding:10px;}
+  #account-section button,#genurl-section button{width:70%;margin:13px auto 0 auto;padding:10px;}
+  #account-api-key{background:#1b1d23;color:#1fa2ff;font-family:monospace;padding:7px 11px;border-radius:7px;display:inline-block;margin:10px 0 16px 0;word-break:break-all;}
+  #genurl-section input[type="url"],#genurl-section input[type="text"]{width:88%;padding:11px;margin:11px auto;border-radius:7px;}
+  #generated-url{color:#00ffd0;font-weight:bold;margin:14px 0 0 0;word-break:break-all;}
+
+  /* Chat */
+  #chat-section{text-align:center;color:#1fa2ff;font-size:1.1em;min-height:90px;}
+  #chat-topbar{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+  #chat-messages{height:260px;overflow-y:auto;background:#191b23;border-radius:8px;padding:10px 8px 0 8px;margin-bottom:.5em;text-align:left;}
+  .chat-message{margin:8px 0;display:flex;align-items:flex-start;gap:8px;}
+  .chat-bubble{padding:9px 14px;border-radius:16px;background:#21243c;color:#fff;max-width:75%;word-break:break-word;box-shadow:0 2px 8px #50eaff33;text-align:left;}
+  .chat-user{font-weight:bold;color:#1fa2ff;margin-right:7px;}
+  .chat-user.admin{color:#ffd700;}
+  .chat-time{font-size:.7em;color:#aaa;margin-left:9px;}
+  #chat-input-area{display:flex;margin-top:12px;}
+  #chat-input{flex:1;padding:8px 10px;border-radius:7px 0 0 7px;border:none;outline:none;font-size:1em;}
+  #chat-send-btn{padding:8px 18px;border-radius:0 7px 7px 0;background:linear-gradient(90deg,#1fa2ff,#12d8fa,#a6ffcb);color:#181a20;border:none;font-weight:600;cursor:pointer;transition:.18s;}
+  #chat-send-btn:hover{background:linear-gradient(90deg,#a6ffcb,#12d8fa,#1fa2ff);color:#000;}
+  .tiny{text-align:center;color:#9ac7ff;font-size:.85em;margin-top:6px;}
+  .pill{background:#232442;color:#9ac7ff;border:none;border-radius:7px;padding:6px 10px;}
+  .friend-btn{padding:4px 8px;border-radius:6px;border:none;cursor:pointer;font-weight:600;background:#1fa2ff;color:#111;box-shadow:0 0 8px #1fa2ff66;}
+  .friend-btn.alt{background:#888;color:#fff;}
+  .friend-btn.warn{background:#ff5d5d;color:#fff;}
+
+  /* Rainbow BG preserved */
+  @keyframes rainbowBG{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+  .rainbow-active{background:linear-gradient(270deg,red,orange,yellow,green,blue,indigo,violet);background-size:1400% 1400%;animation:rainbowBG 10s ease infinite;}
+
+  /* Blue Tick */
+  .blue-tick{display:inline-block;width:19px;height:19px;vertical-align:middle;background:url('https://i.postimg.cc/65ww5CH9/bluetick.png') no-repeat center center/contain;}
+
+  /* Custom Badges */
+  .custom-badge{display:inline-block;padding:2px 13px;margin-left:6px;border-radius:8px;font-size:.92em;font-weight:bold;color:#fff;background:linear-gradient(90deg,#ff8cfa,#53e6fd,#fffa5c,#fda085,#53e6fd,#ff8cfa);background-size:300% 100%;box-shadow:0 0 16px #fff7,0 0 32px #fff5;animation:shineBadge 2s linear infinite;text-shadow:0 0 5px #fff;border:1.5px solid #fff6;cursor:default;}
+  .custom-badge.no-shine{animation:none;box-shadow:none;text-shadow:none;border:1px solid #ffffff22;}
+  @keyframes shineBadge{0%{background-position:0% 50%;}100%{background-position:100% 50%;}}
+
+  /* VIP variants */
+  .vip-red{background:linear-gradient(90deg,#ff2d2d,#c40000);border:1px solid #ff7a7a;box-shadow:0 0 12px #ff3b3b,0 0 28px #ff000044;}
+  .vip-gold{background:linear-gradient(90deg,#ffd700,#f3b300);border:1px solid #fff4b3;box-shadow:0 0 12px #ffd700,0 0 28px #ffd70044;}
+
+  /* Photo Badge (NO outline by default) */
+  .photo-badge{display:inline-block;margin-left:6px;vertical-align:middle;}
+  .photo-badge img{display:block;border-radius:6px;}
+  .photo-badge.shine img{filter:drop-shadow(0 0 6px rgba(255,255,255,.8)) drop-shadow(0 0 12px rgba(31,162,255,.6));animation:photoPulse 1.6s ease-in-out infinite;}
+  @keyframes photoPulse{0%{filter:drop-shadow(0 0 2px rgba(255,255,255,.2)) drop-shadow(0 0 4px rgba(31,162,255,.2));}50%{filter:drop-shadow(0 0 6px rgba(255,255,255,.9)) drop-shadow(0 0 14px rgba(31,162,255,.9));}100%{filter:drop-shadow(0 0 2px rgba(255,255,255,.2)) drop-shadow(0 0 4px rgba(31,162,255,.2));}}
+
+  /* Avatars + Frames */
+  .avatar{position:relative;display:inline-block;width:48px;height:48px;border-radius:50%;overflow:hidden;flex:0 0 auto;}
+  .avatar img.photo{width:100%;height:100%;object-fit:cover;border-radius:50%;border:2px solid #1fa2ff;}
+  .avatar img.frame{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:110%;height:110%;object-fit:contain;pointer-events:none;}
+  /* Sizes for contexts */
+  .avatar.s32{width:32px;height:32px;}
+  .avatar.s26{width:26px;height:26px;}
+  .avatar.s32 img.photo,.avatar.s26 img.photo{border-width:2px;}
+
+  .user-ban-btn{padding:4px 10px;font-size:.85em;border-radius:6px;margin-left:auto;cursor:pointer;font-weight:bold;border:none;transition:.2s;}
+  .user-ban-btn.ban{background:#ff5d5d;color:#fff;box-shadow:0 0 8px #ff5d5d88;}
+  .user-ban-btn.unban{background:#4CAF50;color:#fff;box-shadow:0 0 8px #4CAF5088;}
+  .user-ban-btn.ban:hover{background:#c40000;}
+  .user-ban-btn.unban:hover{background:#2e7d32;}
+
+  @media (max-width:600px){
+    #upload-section,#links-list-section,#admin-panel,.centered,#account-section,#genurl-section,#users-section,#chat-section{padding:10px;max-width:99vw;}
+    .avatar{width:36px;height:36px;}
+    .avatar.s32{width:28px;height:28px;}
+    .avatar.s26{width:24px;height:24px;}
+  }/* Golden VIP Animation */
+.golden-vip {
+    color: gold;
+    background: linear-gradient(90deg, gold, #ffd700, gold);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: goldenShine 3s linear infinite;
+}
+
+@keyframes goldenShine {
+    0% { background-position: -200px 0; }
+    100% { background-position: 200px 0; }
+}
+
+/* Red VIP Animation */
+.red-vip {
+    color: red;
+    text-shadow: 0 0 5px white, 0 0 10px white, 0 0 15px red;
+    animation: redShine 2s ease-in-out infinite alternate;
+}
+
+@keyframes redShine {
+    0% { text-shadow: 0 0 5px white, 0 0 10px white, 0 0 15px red; }
+    100% { text-shadow: 0 0 15px white, 0 0 25px white, 0 0 35px red; }
+}<!-- VIP & Badge Effects (Non-invasive, style-safe) -->
+<style id="vip-badge-effects">
+@keyframes vipGoldShimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes vipRedShine {
+  0% { text-shadow: 0 0 2px rgba(255,255,255,.3), 0 0 6px rgba(255,255,255,.15); }
+  50% { text-shadow: 0 0 6px rgba(255,255,255,.7), 0 0 16px rgba(255,255,255,.4); }
+  100% { text-shadow: 0 0 2px rgba(255,255,255,.3), 0 0 6px rgba(255,255,255,.15); }
+}
+.vip-gold {
+  background: linear-gradient(90deg, #c8a400, #ffd84d, #f4b400, #fff4a8, #c8a400);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  background-size: 200% 100%;
+  animation: vipGoldShimmer 3.2s linear infinite;
+  font-weight: 700;
+}
+.vip-red {
+  color: #ff3b3b !important;
+  font-weight: 700;
+  animation: vipRedShine 2.2s ease-in-out infinite;
+}
+
+/* Frames for avatars */
+.profile-pic.frame-gold { box-shadow: 0 0 0 3px #e4c22a, 0 0 16px rgba(228,194,42,.5); border-radius: 50%; }
+.profile-pic.frame-red  { box-shadow: 0 0 0 3px #ff4d4d, 0 0 16px rgba(255,77,77,.5); border-radius: 50%; }
+.profile-pic.frame-blue { box-shadow: 0 0 0 3px #45a3ff, 0 0 16px rgba(69,163,255,.5); border-radius: 50%; }
+
+/* Photo badge (no outline). Size controlled by CSS var --pb */
+.photo-badge {
+  --pb: 22px;
+  display: inline-block;
+  width: var(--pb);
+  height: var(--pb);
+  background-size: cover;
+  background-position: center;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-left: 6px;
+  pointer-events: none;
+  position: relative;
+}
+@keyframes badgeShine {
+  0% { opacity: .2; transform: translateX(-120%) rotate(25deg); }
+  60% { opacity: .6; transform: translateX(120%) rotate(25deg); }
+  100% { opacity: 0; transform: translateX(160%) rotate(25deg); }
+}
+.photo-badge.shine::after {
+  content: "";
+  position: absolute;
+  top: -30%;
+  left: -30%;
+  width: 60%;
+  height: 160%;
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.6), rgba(255,255,255,0));
+  filter: blur(2px);
+  animation: badgeShine 2.6s linear infinite;
+}
+/* Subtle glow for gold names */
+.light-golden { filter: drop-shadow(0 0 2px rgba(255, 234, 138, 0.6)); }
+</style>
+</head>
+<body>
+  <!-- =================== AUTH =================== -->
+  <div id="login-page" class="centered">
+    <h2>Login to SARIM</h2>
+    <form id="login-form">
+      <input type="email" id="login-email" placeholder="Email" required />
+      <input type="text" id="login-username" placeholder="Username" required />
+      <input type="password" id="login-password" placeholder="Password" required />
+      <button type="submit">Login</button>
+      <div id="login-error" class="error-msg"></div>
+    </form>
+    <hr />
+    <p>Don't have an account? <button onclick="showRegister()">Register</button></p>
+  </div>
+
+  <div id="register-page" class="centered" style="display:none;">
+    <h2>Register on SARIM</h2>
+    <form id="register-form">
+      <input type="email" id="register-email" placeholder="Email" required />
+      <input type="text" id="register-username" placeholder="Username" required />
+      <input type="password" id="register-password" placeholder="Password" required />
+      <input type="file" id="register-photo" accept="image/*" required />
+      <button type="submit">Register</button>
+      <div id="register-error" class="error-msg"></div>
+    </form>
+    <hr />
+    <p>Already have an account? <button onclick="showLogin()">Login</button></p>
+  </div>
+
+  <!-- =================== APP =================== -->
+  <div id="main-app" style="display:none;">
+    <header>
+      <button class="menu-btn" id="menu-btn">&#9776;</button>
+      <h1 style="margin:0;">SARIM</h1>
+      <button id="logout-btn">Logout</button>
+    </header>
+
+    <div id="profile-bar">
+      <span id="profile-avatar"></span>
+      <span id="profile-username"></span>
+      <span id="badge-container"></span>
+    </div>
+
+    <!-- Drawer Menu -->
+    <div class="drawer-backdrop" id="drawer-backdrop"></div>
+    <nav class="menu-drawer" id="menu-drawer">
+      <button class="close-btn" id="drawer-close-btn" title="Close">&times;</button>
+      <ul>
+        <li><button id="menu-account">Account</button></li>
+        <li><button id="menu-genurl">Generate URL</button></li>
+        <li><button id="menu-users">Users</button></li>
+        <li><button id="menu-chat">Chat (Live!)</button></li>
+        <li><button id="menu-upload">Upload Link</button></li>
+        <li><button id="menu-links">Links</button></li>
+        <li id="admin-menu-li" style="display:none;"><button id="menu-admin">Admin Panel</button></li>
+      </ul>
+    </nav>
+
+    <!-- Sections -->
+    <section id="account-section">
+      <h2>My Account</h2>
+      <div><label>API Key:</label> <div id="account-api-key"></div></div>
+      <form id="update-profile-form">
+        <input type="text" id="update-name" placeholder="Display Name" />
+        <input type="text" id="update-username" placeholder="Username" />
+        <input type="password" id="update-password" placeholder="New Password" />
+        <input type="file" id="update-photo" accept="image/*" />
+        <button type="submit">Update Profile</button>
+        <div id="update-profile-error" class="error-msg"></div>
+      </form>
+    </section>
+
+    <section id="genurl-section">
+      <h2>Generate Custom URL</h2>
+      <form id="genurl-form">
+        <input type="url" id="genurl-input" placeholder="Enter your public link" required />
+        <input type="text" id="genurl-title" placeholder="Title (optional)" />
+        <button type="submit">Generate SARIM URL</button>
+        <div id="genurl-error" class="error-msg"></div>
+        <div id="generated-url"></div>
+      </form>
+    </section>
+
+    <section id="users-section">
+      <h2>All Users</h2>
+      <ul id="users-list"></ul>
+      <!-- hidden file inputs for admin actions -->
+      <input type="file" id="photo-badge-input" accept="image/*" style="display:none;" />
+      <input type="file" id="frame-input" accept="image/*" style="display:none;" />
+    </section>
+
+    <section id="chat-section">
+      <h2>Chat System</h2>
+      <div id="chat-topbar">
+        <span class="pill">Select Friend:</span>
+        <select id="chat-friend-select" class="pill"></select>
+        <span id="chat-status" class="tiny"></span>
+      </div>
+      <div id="chat-messages"></div>
+      <div id="chat-input-area">
+        <input id="chat-input" type="text" placeholder="Type your message..." maxlength="280" autocomplete="off" />
+        <button id="chat-send-btn">Send</button>
+      </div>
+      <div class="tiny">Note: You can only DM friends (request ➜ accept).</div>
+    </section>
+
+    <section id="upload-section">
+      <h2>Upload a Public Link</h2>
+      <form id="upload-form">
+        <input type="url" id="link-url" placeholder="Paste your Mediafire or public link" required />
+        <button type="submit">Upload Link</button>
+        <div id="upload-error" class="error-msg"></div>
+      </form>
+    </section>
+
+    <section id="links-list-section">
+      <h2>Uploaded Links</h2>
+      <ul id="links-list"></ul>
+    </section>
+
+    <section id="admin-panel">
+      <h2>Admin Panel</h2>
+      <div>
+        <h3>Ban, Remove, or Unban Links</h3>
+        <ul id="admin-links-list"></ul>
+      </div>
+      <div>
+        <h3>Ban or Unban User by Username</h3>
+        <input type="text" id="ban-username" placeholder="Username" />
+        <button onclick="banUser()">Ban User</button>
+        <button onclick="unbanUser()">Unban User</button>
+        <div id="ban-error" class="error-msg"></div>
+      </div><!-- Admin: VIP / Frames / Photo Badges / Blue Tick quick -->
+<div id="admin-vip-tools" style="margin-top:14px;padding-top:10px;border-top:1px dashed #444;">
+  <h3>VIP, Frames, Blue Tick & Photo Badges</h3>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <input type="text" id="adm-target-username" placeholder="Username">
+    <button onclick="adminSetVIP('gold')" title="Golden VIP">Give Golden VIP</button>
+    <button onclick="adminSetVIP('red')"  title="Red VIP">Give Red VIP</button>
+    <button onclick="adminSetVIP(null)"   title="Remove VIP">Remove VIP</button>
+    <button onclick="adminToggleBlueTick()" title="Toggle Blue Tick">Blue Tick On/Off</button>
+  </div>
+
+  <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <label style="opacity:.85">Frame:</label>
+    <button onclick="adminSetFrame('gold')">Gold</button>
+    <button onclick="adminSetFrame('red')">Red</button>
+    <button onclick="adminSetFrame('blue')">Blue</button>
+    <button onclick="adminSetFrame(null)">Remove Frame</button>
+  </div>
+
+  <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <input type="url" id="adm-photo-url" placeholder="Photo badge URL">
+    <input type="text" id="adm-photo-size" placeholder="Size (e.g. 22px / 1.2rem)" style="width:150px">
+    <label><input type="checkbox" id="adm-photo-shine"> Shine</label>
+    <button onclick="adminAddPhotoBadge()">Add Photo Badge</button>
+    <button onclick="adminClearPhotoBadges()">Remove Photo Badges</button>
+  </div>
+    </section>
+  </div>
+
+<script>
+// Function to set VIP type for a user
+function setVIP(username, type) {
+    const userElement = document.querySelector(`[data-username="${username}"]`);
+
+    if (!userElement) return;
+
+    // Remove old VIP classes
+    userElement.classList.remove('golden-vip', 'red-vip');
+
+    // Add new VIP effect
+    if (type === 'golden') {
+        userElement.classList.add('golden-vip');
+    } else if (type === 'red') {
+        userElement.classList.add('red-vip');
+    }
+}
+/* =================== STORAGE HELPERS =================== */
+const ADMIN_ACCOUNTS = [
+  { username: "admin1", email: "admin1@sarim.com", password: "sarimadmin1", badges: ["admin","mvp","shadow"] },
+  { username: "admin2", email: "admin2@sarim.com", password: "sarimadmin2", badges: ["admin","shadow"] },
+  { username: "admin3", email: "admin3@sarim.com", password: "sarimadmin3", badges: ["admin"] }
+];
+const SARIM_DOMAIN = "sarimurl";
+
+const LS_USERS = "sarim_users";
+const LS_LINKS = "sarim_links";
+const LS_BANS  = "sarim_bans";
+const LS_SESS  = "sarim_session";
+
+const BLUE_TICK_URL = "https://i.postimg.cc/65ww5CH9/bluetick.png";
+
+function getUsers(){ return JSON.parse(localStorage.getItem(LS_USERS) || "[]"); }
+function setUsers(v){ localStorage.setItem(LS_USERS, JSON.stringify(v)); }
+function getLinks(){ return JSON.parse(localStorage.getItem(LS_LINKS) || "[]"); }
+function setLinks(v){ localStorage.setItem(LS_LINKS, JSON.stringify(v)); }
+function getBans(){ return JSON.parse(localStorage.getItem(LS_BANS)  || "[]"); }
+function setBans(v){ localStorage.setItem(LS_BANS, JSON.stringify(v)); }
+function getSession(){ return JSON.parse(localStorage.getItem(LS_SESS) || "null"); }
+function setSession(v){ if(v==null) localStorage.removeItem(LS_SESS); else localStorage.setItem(LS_SESS, JSON.stringify(v)); }
+
+function composeChatKey(a,b){ const [x,y] = [a,b].sort((p,q)=>p.localeCompare(q)); return `sarim_dm_${x}__${y}`; }
+function getDM(a,b){ return JSON.parse(localStorage.getItem(composeChatKey(a,b)) || "[]"); }
+function setDM(a,b,msgs){ localStorage.setItem(composeChatKey(a,b), JSON.stringify(msgs)); }
+
+/* =================== SETUP / PATCH =================== */
+function generateApiKey(username,email){ return btoa(username+":"+email+":"+Date.now()).replace(/=+$/,""); }
+function setupAdmins(){
+  let users = getUsers(); let changed=false;
+  ADMIN_ACCOUNTS.forEach(adm=>{
+    if(!users.some(u=>u.username===adm.username)){
+      users.push({
+        username: adm.username,
+        email: adm.email,
+        password: adm.password,
+        photo: "https://i.imgur.com/4M34hi2.png",
+        badges: adm.badges,
+        isAdmin: true,
+        apiKey: generateApiKey(adm.username, adm.email),
+        blueTick: false,
+        customBadges: [],       // [{type:'text'|'photo'|'vip', ...}]
+        frame: null,            // {img: base64}
+        friends: [],
+        requests: { sent: [], received: [] }
+      });
+      changed=true;
+    }
+  });
+  if(changed) setUsers(users);
+}
+function patchUserFields(){
+  let users = getUsers(); let changed=false;
+  users.forEach(u=>{
+    if(!("blueTick" in u)){ u.blueTick=false; changed=true; }
+    if(!("customBadges" in u)){ u.customBadges=[]; changed=true; }
+    if(!("frame" in u)){ u.frame=null; changed=true; }
+    if(!("friends" in u)){ u.friends=[]; changed=true; }
+    if(!("requests" in u)){ u.requests={sent:[],received:[]}; changed=true; }
+  });
+  if(changed) setUsers(users);
+}
+setupAdmins(); patchUserFields();
+
+/* =================== AUTH =================== */
+function showRegister(){ q("#login-page").style.display="none"; q("#register-page").style.display=""; }
+function showLogin(){ q("#register-page").style.display="none"; q("#login-page").style.display=""; }
+function showApp(){
+  q("#login-page").style.display="none";
+  q("#register-page").style.display="none";
+  q("#main-app").style.display="";
+  renderProfile(); setMenuVisibility(); showSection('upload-section');
+  renderUsersSection(); renderChatSection();
+}
+function showLoginError(msg){ q("#login-error").innerText = msg; }
+function showRegisterError(msg){ q("#register-error").innerText = msg; }
+function showUploadError(msg){ q("#upload-error").innerText = msg; }
+function showBanError(msg){ q("#ban-error").innerText = msg; }
+function showUpdateProfileError(msg){ q("#update-profile-error").innerText = msg; }
+function showGenurlError(msg){ q("#genurl-error").innerText = msg; }
+function clearErrors(){ showLoginError(""); showRegisterError(""); showUploadError(""); showBanError(""); showUpdateProfileError(""); showGenurlError(""); }
+function getCurrentUser(){
+  const s = getSession(); if(!s) return null;
+  return getUsers().find(u=>u.username===s.username && u.email===s.email) || null;
+}
+function setCurrentUserSession(u){ setSession({username:u.username,email:u.email}); }
+function q(sel){ return document.querySelector(sel); }
+
+q("#register-form").onsubmit = function(e){
+  e.preventDefault(); clearErrors();
+  const email = q("#register-email").value.trim().toLowerCase();
+  const username = q("#register-username").value.trim();
+  const password = q("#register-password").value;
+  const photoFile = q("#register-photo").files[0];
+  if(!email || !username || !password || !photoFile){ showRegisterError("All fields required."); return; }
+  let users = getUsers();
+  if(users.some(u=>u.email===email)){ showRegisterError("Email already registered."); return; }
+  if(users.some(u=>u.username===username)){ showRegisterError("Username already taken."); return; }
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const photo = ev.target.result;
+    const newUser = { username,email,password,photo,badges:[],isAdmin:false,apiKey:generateApiKey(username,email),
+      blueTick:false, customBadges:[], frame:null, friends:[], requests:{sent:[],received:[]} };
+    users.push(newUser); setUsers(users); setCurrentUserSession(newUser); showApp();
+  };
+  reader.readAsDataURL(photoFile);
+};
+
+q("#login-form").onsubmit = function(e){
+  e.preventDefault(); clearErrors();
+  const email = q("#login-email").value.trim().toLowerCase();
+  const username = q("#login-username").value.trim();
+  const password = q("#login-password").value;
+  const bans = getBans(); if(bans.includes(username)){ showLoginError("This account is banned."); return; }
+  const users = getUsers();
+  const user = users.find(u=>u.email===email && u.username===username && u.password===password);
+  if(!user){ showLoginError("Invalid credentials."); return; }
+  setCurrentUserSession(user); showApp();
+};
+
+q("#logout-btn").onclick = function(){ setSession(null); location.reload(); };
+
+/* =================== AVATAR (with optional frame) =================== */
+function avatarHTML(user, sizePx=48){
+  const sizeClass = sizePx<=26 ? "s26" : sizePx<=32 ? "s32" : "";
+  const frame = user.frame ? `<img class="frame" src="${user.frame.img}" alt="frame" />` : "";
+  return `
+    <span class="avatar ${sizeClass}" style="width:${sizePx}px;height:${sizePx}px;">
+      <img class="photo" src="${user.photo}" alt="${user.username}" />
+      ${frame}
+    </span>`;
+}
+
+/* =================== PROFILE BAR =================== */
+function renderProfile(){
+  const u = getCurrentUser(); if(!u) return;
+  q("#profile-avatar").innerHTML = avatarHTML(u,48);
+
+  let unameHtml = u.username + (u.blueTick ? ' <span class="blue-tick"></span>' : '');
+  q("#profile-username").innerHTML = unameHtml;
+
+  q("#badge-container").innerHTML = badgesHTML(u);
+}
+function badgesHTML(u){
+  let html = "";
+  if(u.isAdmin){
+    if(u.badges.includes("admin")) html += `<span class="badge admin">ADMIN</span>`;
+    if(u.badges.includes("mvp"))   html += `<span class="badge mvp">MVP</span>`;
+    if(u.badges.includes("shadow"))html += `<span class="badge shadow">SHADOW</span>`;
+  }
+  (u.customBadges||[]).forEach(b=>{
+    if(b.type==="photo"){
+      html += `<span class="photo-badge ${b.shine?'shine':''}" title="${b.label||'badge'}"><img src="${b.img}" alt="badge" style="width:${(b.size||18)}px;height:${(b.size||18)}px;border-radius:${Math.max(0,Math.floor((b.size||18)/6))}px;"></span>`;
+    }else if(b.type==="vip"){
+      const cls = b.variant==='red' ? 'vip-red' : 'vip-gold';
+      html += `<span class="custom-badge ${cls} ${b.shine===false?'no-shine':''}">${b.variant==='red'?'RED VIP':'GOLDEN VIP'}</span>`;
+    }else{
+      const cls = b.shine===false ? 'no-shine' : '';
+      html += `<span class="custom-badge ${cls}" style="background:${b.bg||''};color:${b.color||'#fff'};">${b.label||'Badge'}</span>`;
+    }
+  });
+  return html;
+}
+
+/* =================== MENU / SECTIONS =================== */
+const sectionIds = ["account-section","genurl-section","users-section","chat-section","upload-section","links-list-section","admin-panel"];
+function showSection(id){
+  sectionIds.forEach(sec=>q("#"+sec).classList.remove("active-section"));
+  q("#"+id).classList.add("active-section");
+  if(id==="account-section") renderAccountSection();
+  if(id==="users-section") renderUsersSection();
+  if(id==="links-list-section") renderLinks();
+  if(id==="admin-panel") renderAdminLinks();
+  if(id==="chat-section") renderChatSection();
+}
+const menuBtn = q("#menu-btn");
+const menuDrawer = q("#menu-drawer");
+const drawerBackdrop = q("#drawer-backdrop");
+const drawerCloseBtn = q("#drawer-close-btn");
+let drawerOpen = false;
+function openDrawer(){ menuDrawer.classList.add("open"); drawerBackdrop.classList.add("open"); menuBtn.innerHTML="&#10003;"; menuBtn.classList.add("active"); drawerOpen=true; }
+function closeDrawer(){ menuDrawer.classList.remove("open"); drawerBackdrop.classList.remove("open"); menuBtn.innerHTML="&#9776;"; menuBtn.classList.remove("active"); drawerOpen=false; }
+menuBtn.onclick = ()=> drawerOpen ? closeDrawer() : openDrawer();
+drawerBackdrop.onclick = closeDrawer; drawerCloseBtn.onclick = closeDrawer;
+function setMenuVisibility(){ const u = getCurrentUser(); q("#admin-menu-li").style.display = (u && u.isAdmin) ? "" : "none"; }
+q("#menu-account").onclick = ()=>{ showSection('account-section'); closeDrawer(); };
+q("#menu-genurl").onclick = ()=>{ showSection('genurl-section'); closeDrawer(); };
+q("#menu-users").onclick   = ()=>{ showSection('users-section'); closeDrawer(); };
+q("#menu-chat").onclick    = ()=>{ showSection('chat-section'); closeDrawer(); };
+q("#menu-upload").onclick  = ()=>{ showSection('upload-section'); closeDrawer(); };
+q("#menu-links").onclick   = ()=>{ showSection('links-list-section'); closeDrawer(); };
+q("#menu-admin").onclick   = ()=>{ showSection('admin-panel'); closeDrawer(); };
+
+/* =================== ACCOUNT =================== */
+function renderAccountSection(){
+  const u = getCurrentUser(); if(!u) return;
+  q("#account-api-key").innerText = u.apiKey || "";
+  q("#update-name").value = u.username;
+  q("#update-username").value = u.username;
+  q("#update-password").value = "";
+  q("#update-photo").value = "";
+  showUpdateProfileError("");
+}
+q("#update-profile-form").onsubmit = function(e){
+  e.preventDefault(); clearErrors();
+  let users = getUsers(); let u = getCurrentUser(); if(!u) return;
+  let updateName = q("#update-name").value.trim();
+  let updateUsername = q("#update-username").value.trim();
+  let updatePassword = q("#update-password").value;
+  let photoFile = q("#update-photo").files[0];
+
+  if(updateUsername && updateUsername !== u.username){
+    if(users.some(x=>x.username===updateUsername)){ showUpdateProfileError("Username already taken."); return; }
+  }
+  const idx = users.findIndex(x=>x.username===u.username && x.email===u.email); if(idx===-1) return;
+
+  if(updateName) users[idx].username = updateName;
+  if(updateUsername) users[idx].username = updateUsername;
+  if(updatePassword) users[idx].password = updatePassword;
+
+  if(photoFile){
+    const reader = new FileReader();
+    reader.onload = ev=>{ users[idx].photo = ev.target.result; updateAndReload(users, users[idx]); };
+    reader.readAsDataURL(photoFile); return;
+  }
+  updateAndReload(users, users[idx]);
+};
+function updateAndReload(users, updatedUser){
+  setUsers(users); setCurrentUserSession(updatedUser);
+  renderProfile(); renderAccountSection(); renderUsersSection(); renderChatSection();
+  showUpdateProfileError("Profile updated!");
+}
+
+/* =================== GEN URL =================== */
+q("#genurl-form").onsubmit = function(e){
+  e.preventDefault(); clearErrors();
+  const u = getCurrentUser(); if(!u) return;
+  const link = q("#genurl-input").value.trim();
+  const title = q("#genurl-title").value.trim() || u.username;
+  if(!/^https?:\/\/.+/i.test(link)){ showGenurlError("Invalid link."); return; }
+  const encodedTitle = encodeURIComponent(title.replace(/\s/g,''));
+  const encodedLink = encodeURIComponent(link);
+  const url = `https://${SARIM_DOMAIN}.com/${encodedTitle}%25%25${encodedLink}`;
+  q("#generated-url").innerText = url;
+};
+
+/* =================== USERS (FRIENDS + ADMIN CONTROLS) =================== */
+function renderUsersSection(){
+  const users = getUsers(); const bans = getBans(); const me = getCurrentUser();
+  const ul = q("#users-list"); ul.innerHTML = "";
+
+  users.forEach(u=>{
+    const li = document.createElement("li");
+    const isBanned = bans.includes(u.username);
+
+    // Left: Avatar + Name + Tick + Badges
+    const left = document.createElement("div"); left.style.display="flex"; left.style.alignItems="center"; left.style.gap="8px"; left.style.flexWrap="wrap";
+    left.innerHTML = `
+      ${avatarHTML(u,32)}
+      <span class="user-name">${u.username}${u.blueTick?'<span class="blue-tick"></span>':''}</span>
+      <span>${badgesHTML(u)}</span>
+      ${isBanned ? '<span style="color:#ff5555;font-size:.9em;margin-left:8px;">[BANNED]</span>' : ''}
+    `;
+    li.appendChild(left);
+
+    // FRIEND UI
+    if(me && me.username !== u.username){
+      const friendWrap = document.createElement("div");
+      friendWrap.style.display="flex"; friendWrap.style.gap="6px"; friendWrap.style.flexWrap="wrap"; friendWrap.style.marginLeft="auto";
+      const state = getFriendState(me, u.username);
+      if(state==="friends"){
+        friendWrap.append(button("Message","friend-btn",()=>openDMWith(u.username)));
+        friendWrap.append(button("Remove","friend-btn warn",()=>removeFriend(u.username)));
+        friendWrap.append(stateLabel("Friends ✓"));
+      }else if(state==="sent"){
+        friendWrap.append(button("Cancel","friend-btn alt",()=>cancelRequest(u.username)));
+        friendWrap.append(stateLabel("Request Sent"));
+      }else if(state==="received"){
+        friendWrap.append(button("Accept","friend-btn",()=>acceptRequest(u.username)));
+        friendWrap.append(button("Reject","friend-btn alt",()=>rejectRequest(u.username)));
+        friendWrap.append(stateLabel("Request Received"));
+      }else{
+        friendWrap.append(button("Add Friend","friend-btn",()=>sendRequest(u.username)));
+      }
+      li.appendChild(friendWrap);
+    }
+
+    // ADMIN CONTROLS
+    if(me && me.isAdmin && me.username !== u.username){
+      const adminWrap = document.createElement("div");
+      adminWrap.style.display="flex"; adminWrap.style.gap="6px"; adminWrap.style.flexWrap="wrap"; adminWrap.style.marginLeft="6px";
+
+      adminWrap.innerHTML += `
+        <button onclick="toggleBlueTick('${u.username}')" class="user-ban-btn ${u.blueTick?'unban':'ban'}">${u.blueTick?'Remove Blue Tick':'Give Blue Tick'}</button>
+        <button onclick="openBadgeDialog('${u.username}')" class="user-ban-btn ban" style="background:#ffbb00;color:#212;">Text Badge</button>
+        <button onclick="openPhotoBadgeDialog('${u.username}')" class="user-ban-btn ban" style="background:#00d4ff;color:#111;">Photo Badge</button>
+        <button onclick="giveRedVIP('${u.username}')" class="user-ban-btn ban" style="background:#ff3b3b;">RED VIP</button>
+        <button onclick="giveGoldenVIP('${u.username}')" class="user-ban-btn ban" style="background:#ffd700;color:#111;">GOLD VIP</button>
+        <button onclick="openFrameDialog('${u.username}')" class="user-ban-btn ban" style="background:#7f7fff;">Add Frame</button>
+        <button onclick="removeFrame('${u.username}')" class="user-ban-btn ban" style="background:#888;">Remove Frame</button>
+        <button onclick="removeAllBadges('${u.username}')" class="user-ban-btn ban" style="background:#666;">Clear Badges</button>
+      `;
+      li.appendChild(adminWrap);
+    }
+
+    ul.appendChild(li);
+  });
+}
+function button(text, cls, fn){ const b=document.createElement("button"); b.className=cls; b.textContent=text; b.onclick=fn; return b; }
+function stateLabel(text){ const s=document.createElement("span"); s.className="tiny"; s.textContent=text; return s; }
+
+function getFriendState(me, other){
+  me = typeof me==="string" ? getUsers().find(u=>u.username===me) : me;
+  if(!me) return "none";
+  if(me.friends.includes(other)) return "friends";
+  if(me.requests.sent.includes(other)) return "sent";
+  if(me.requests.received.includes(other)) return "received";
+  return "none";
+}
+function sendRequest(toUser){
+  let users = getUsers(); const me = getCurrentUser();
+  const iMe = users.findIndex(x=>x.username===me.username);
+  const iTo = users.findIndex(x=>x.username===toUser);
+  if(iMe<0 || iTo<0) return;
+  if(users[iMe].friends.includes(toUser) || users[iMe].requests.sent.includes(toUser)) return;
+  users[iMe].requests.sent.push(toUser);
+  users[iTo].requests.received.push(me.username);
+  setUsers(users); renderUsersSection(); renderChatSection();
+}
+function cancelRequest(toUser){
+  let users = getUsers(); const me = getCurrentUser();
+  const iMe = users.findIndex(x=>x.username===me.username);
+  const iTo = users.findIndex(x=>x.username===toUser);
+  if(iMe<0 || iTo<0) return;
+  users[iMe].requests.sent = users[iMe].requests.sent.filter(u=>u!==toUser);
+  users[iTo].requests.received = users[iTo].requests.received.filter(u=>u!==me.username);
+  setUsers(users); renderUsersSection();
+}
+function acceptRequest(fromUser){
+  let users = getUsers(); const me = getCurrentUser();
+  const iMe = users.findIndex(x=>x.username===me.username);
+  const iFrom = users.findIndex(x=>x.username===fromUser);
+  if(iMe<0 || iFrom<0) return;
+  users[iMe].requests.received = users[iMe].requests.received.filter(u=>u!==fromUser);
+  users[iFrom].requests.sent = users[iFrom].requests.sent.filter(u=>u!==me.username);
+  if(!users[iMe].friends.includes(fromUser)) users[iMe].friends.push(fromUser);
+  if(!users[iFrom].friends.includes(me.username)) users[iFrom].friends.push(me.username);
+  setUsers(users); renderUsersSection(); renderChatSection();
+}
+function rejectRequest(fromUser){
+  let users = getUsers(); const me = getCurrentUser();
+  const iMe = users.findIndex(x=>x.username===me.username);
+  const iFrom = users.findIndex(x=>x.username===fromUser);
+  if(iMe<0 || iFrom<0) return;
+  users[iMe].requests.received = users[iMe].requests.received.filter(u=>u!==fromUser);
+  users[iFrom].requests.sent = users[iFrom].requests.sent.filter(u=>u!==me.username);
+  setUsers(users); renderUsersSection();
+}
+function removeFriend(other){
+  let users = getUsers(); const me = getCurrentUser();
+  const iMe = users.findIndex(x=>x.username===me.username);
+  const iO = users.findIndex(x=>x.username===other);
+  if(iMe<0 || iO<0) return;
+  users[iMe].friends = users[iMe].friends.filter(u=>u!==other);
+  users[iO].friends = users[iO].friends.filter(u=>u!==me.username);
+  setUsers(users); renderUsersSection(); renderChatSection();
+}
+
+/* ===== Admin: blue tick + badges + photo badges + VIP + frames ===== */
+window.toggleBlueTick = function(username){
+  let users = getUsers(); const idx = users.findIndex(u=>u.username===username);
+  if(idx!==-1){ users[idx].blueTick=!users[idx].blueTick; setUsers(users); rerenderAll(); }
+};
+window.openBadgeDialog = function(username){
+  const label = prompt("Text badge label (e.g. PRO, HERO):");
+  if(!label) return;
+  const color = prompt("Text color (e.g. #fff):","#fff") || "#fff";
+  const bg = prompt("Badge background (CSS color OR gradient):","linear-gradient(90deg,#ff8cfa,#53e6fd)") || "";
+  const shine = confirm("Enable SHINE for this badge?");
+  let users = getUsers(); const idx = users.findIndex(u=>u.username===username);
+  if(idx!==-1){
+    users[idx].customBadges = users[idx].customBadges || [];
+    users[idx].customBadges.push({type:"text", label, color, bg, shine});
+    setUsers(users); rerenderAll();
+  }
+};
+/* Photo badge: any size + shine toggle + NO outline */
+window.openPhotoBadgeDialog = function(username){
+  const input = q("#photo-badge-input");
+  input.onchange = e=>{
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      const sizeStr = prompt("Photo badge size in px (e.g., 18):","18");
+      const size = Math.max(10, parseInt(sizeStr||"18", 10));
+      const label = prompt("Photo badge label (optional):","PHOTO") || "PHOTO";
+      const shine = confirm("Enable SHINE for this photo badge?");
+      let users = getUsers(); const idx = users.findIndex(u=>u.username===username);
+      if(idx!==-1){
+        users[idx].customBadges = users[idx].customBadges || [];
+        users[idx].customBadges.push({type:"photo", img: ev.target.result, size, label, shine});
+        setUsers(users); rerenderAll();
+      }
+      input.value="";
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+};
+/* VIPs */
+function ensureNoDuplicateVIP(list, variant){
+  return (list||[]).filter(b => !(b.type==="vip" && b.variant===variant));
+}
+window.giveRedVIP = function(username){
+  let users = getUsers(); const idx = users.findIndex(u=>u.username===username);
+  if(idx!==-1){
+    users[idx].customBadges = ensureNoDuplicateVIP(users[idx].customBadges,'red');
+    users[idx].customBadges.push({type:"vip", variant:"red", shine:true});
+    setUsers(users); rerenderAll();
+  }
+};
+window.giveGoldenVIP = function(username){
+  let users = getUsers(); const idx = users.findIndex(u=>u.username===username);
+  if(idx!==-1){
+    users[idx].customBadges = ensureNoDuplicateVIP(users[idx].customBadges,'gold');
+    users[idx].customBadges.push({type:"vip", variant:"gold", shine:true});
+    setUsers(users); rerenderAll();
+  }
+};
+/* Frames */
+window.openFrameDialog = function(username){
+  const input = q("#frame-input");
+  input.onchange = e=>{
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      let users = getUsers(); const idx = users.findIndex(u=>u.username===username);
+      if(idx!==-1){
+        users[idx].frame = { img: ev.target.result };
+        setUsers(users); rerenderAll();
+      }
+      input.value="";
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+};
+window.removeFrame = function(username){
+  let users = getUsers(); const idx = users.findIndex(u=>u.username===username);
+  if(idx!==-1){ users[idx].frame=null; setUsers(users); rerenderAll(); }
+};
+window.removeAllBadges = function(username){
+  if(!confirm("Remove ALL custom badges for "+username+"?")) return;
+  let users = getUsers(); const idx = users.findIndex(u=>u.username===username);
+  if(idx!==-1){ users[idx].customBadges=[]; setUsers(users); rerenderAll(); }
+};
+function rerenderAll(){ renderUsersSection(); renderProfile(); renderChatSection(); }
+
+/* =================== CHAT (DM ONLY WITH FRIENDS) =================== */
+function renderChatSection(){
+  const me = getCurrentUser(); if(!me) return;
+  // friend select
+  const sel = q("#chat-friend-select"); sel.innerHTML = "";
+  const myFriends = (me.friends||[]).slice().sort();
+  if(myFriends.length===0){
+    sel.innerHTML = `<option value="">No Friends Yet</option>`;
+    q("#chat-status").textContent = "Send request from Users page.";
+  } else {
+    myFriends.forEach(f=>{ sel.innerHTML += `<option value="${f}">${f}</option>`; });
+    q("#chat-status").textContent = "Friends ✓";
+  }
+  sel.onchange = renderDM;
+  renderDM();
+}
+function openDMWith(username){
+  showSection('chat-section');
+  const sel = q("#chat-friend-select");
+  [...sel.options].forEach((o,i)=>{ if(o.value===username) sel.selectedIndex=i; });
+  renderDM(); closeDrawer();
+}
+function renderDM(){
+  const me = getCurrentUser(); if(!me) return;
+  const sel = q("#chat-friend-select");
+  const friend = sel.value;
+  const box = q("#chat-messages");
+  box.innerHTML = "";
+  if(!friend){ box.innerHTML = `<div class="tiny">No friend selected.</div>`; return; }
+  if(!me.friends.includes(friend)){ box.innerHTML = `<div class="tiny">You are not friends yet. Go to Users and accept request.</div>`; return; }
+  const msgs = getDM(me.username, friend);
+  const users = getUsers();
+  msgs.slice(-150).forEach(m=>{
+    const user = users.find(u=>u.username===m.from);
+    const isAdmin = user && user.isAdmin;
+    const blueTick = user && user.blueTick ? '<span class="blue-tick"></span>' : '';
+    const nameLine = `${m.from}${blueTick} ${badgesHTML(user)||''}`;
+    box.innerHTML += `
+      <div class="chat-message">
+        ${avatarHTML(user||{photo:"",username:""},26)}
+        <div>
+          <span class="chat-user${isAdmin?' admin':''}">${nameLine}</span>
+          <span class="chat-time">${new Date(m.time).toLocaleTimeString().replace(/:\d+ /,' ')}</span>
+          <div class="chat-bubble">${m.text.replace(/</g,"&lt;")}</div>
+        </div>
+      </div>
+    `;
+  });
+  box.scrollTop = box.scrollHeight;
+}
+q("#chat-send-btn").onclick = sendDM;
+q("#chat-input").onkeydown = e=>{ if(e.key==="Enter") sendDM(); };
+function sendDM(){
+  const me = getCurrentUser(); if(!me) return;
+  const friend = q("#chat-friend-select").value;
+  const input = q("#chat-input");
+  const text = input.value.trim(); if(!text) return;
+  if(!friend || !me.friends.includes(friend)){ alert("You can only message friends."); return; }
+  const msgs = getDM(me.username, friend);
+  msgs.push({ from: me.username, to: friend, text, time: Date.now() });
+  setDM(me.username, friend, msgs);
+  input.value = "";
+  renderDM();
+}
+// Poll for new DMs (simple localStorage tick)
+let lastDMVersion = 0;
+setInterval(()=>{
+  const me = getCurrentUser(); if(!me) return;
+  const tick = (Date.now()/1000)|0;
+  if(tick!==lastDMVersion){ renderDM(); lastDMVersion=tick; }
+}, 1000);
+
+/* =================== UPLOAD LINKS =================== */
+q("#upload-form").onsubmit = function(e){
+  e.preventDefault(); clearErrors();
+  let url = q("#link-url").value.trim();
+  if(!/^https?:\/\/.+/i.test(url)){ showUploadError("Invalid link."); return; }
+  let links = getLinks(); const user = getCurrentUser(); if(!user){ showUploadError("Not logged in."); return; }
+  if(links.some(l=>l.url===url && l.uploader===user.username)){ showUploadError("You already uploaded this link."); return; }
+  links.unshift({ url, uploader:user.username, uploaderPhoto:user.photo, date:new Date().toISOString() });
+  setLinks(links); renderLinks(); if(user.isAdmin) renderAdminLinks(); q("#link-url").value="";
+};
+function renderLinks(){
+  let links = getLinks(); let list = q("#links-list"); list.innerHTML="";
+  let bans = getBans();
+  links.forEach((l,idx)=>{
+    if(bans.includes(l.uploader)) return;
+    const li = document.createElement("li");
+    const user = getUsers().find(u=>u.username===l.uploader);
+    li.innerHTML = `
+      <div class="link-info">
+        <a href="${l.url}" target="_blank" rel="noopener">${l.url}</a>
+        <span class="link-user">
+          ${user ? avatarHTML(user,26) : ''}
+          ${l.uploader}
+        </span>
+      </div>
+    `;
+    list.appendChild(li);
+  });
+}
+
+/* =================== ADMIN: LINKS + BANS =================== */
+function renderAdminLinks(){
+  let links = getLinks(); let bans = getBans(); let adminList = q("#admin-links-list"); adminList.innerHTML="";
+  links.forEach((l,idx)=>{
+    let isBanned = bans.includes(l.uploader);
+    const user = getUsers().find(u=>u.username===l.uploader);
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <div class="link-info">
+        <a href="${l.url}" target="_blank" rel="noopener">${l.url}</a>
+        <span class="link-user">
+          ${user ? avatarHTML(user,26) : ''}
+          ${l.uploader}
+          ${isBanned ? '<span style="color:#ff5555;font-size:.9em;margin-left:8px;">[BANNED]</span>' : ''}
+        </span>
+      </div>
+      <div class="link-actions">
+        <button onclick="removeLink(${idx})">Remove</button>
+        <button onclick="banUploader('${l.uploader}')">Ban Uploader</button>
+        <button class="unban-btn" onclick="unbanUploader('${l.uploader}')">Unban Uploader</button>
+      </div>
+    `;
+    adminList.appendChild(li);
+  });
+}
+window.removeLink = function(idx){ let links = getLinks(); links.splice(idx,1); setLinks(links); renderLinks(); renderAdminLinks(); };
+window.banUploader = function(username){ let bans=getBans(); if(!bans.includes(username)) bans.push(username); setBans(bans); renderLinks(); renderAdminLinks(); };
+window.unbanUploader = function(username){ let bans=getBans(); let i=bans.indexOf(username); if(i!==-1) bans.splice(i,1); setBans(bans); renderLinks(); renderAdminLinks(); };
+
+window.banUser = function(){
+  clearErrors();
+  const name = q("#ban-username").value.trim();
+  if(!name){ showBanError("Enter a username."); return; }
+  let users = getUsers();
+  if(!users.some(u=>u.username===name)){ showBanError("No such user."); return; }
+  let bans = getBans();
+  if(!bans.includes(name)){ bans.push(name); setBans(bans); showBanError("User banned!"); } else { showBanError("Already banned."); }
+  renderLinks(); renderAdminLinks();
+};
+window.unbanUser = function(){
+  clearErrors();
+  const name = q("#ban-username").value.trim(); if(!name){ showBanError("Enter a username."); return; }
+  let bans = getBans(); let i=bans.indexOf(name);
+  if(i!==-1){ bans.splice(i,1); setBans(bans); showBanError("User unbanned!"); } else { showBanError("User not banned."); }
+  renderLinks(); renderAdminLinks();
+};
+
+/* =================== APP INIT =================== */
+window.onload = function(){
+  patchUserFields();
+  const session = getSession();
+  if(session){
+    const u = getCurrentUser();
+    if(u) showApp(); else setSession(null);
+  }
+};
+</script>
+</body>
+</html>
